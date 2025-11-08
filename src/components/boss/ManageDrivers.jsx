@@ -357,9 +357,6 @@ const ManageDrivers = ({
       }} className="text-white text-xl font-semibold">
           Manage Drivers ({drivers.length})
         </motion.h2>
-        <Button onClick={() => openModal()} className="bg-purple-600 hover:bg-purple-700">
-          <UserPlus className="w-4 h-4 mr-2" /> Add Driver
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
