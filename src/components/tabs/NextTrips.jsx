@@ -4,6 +4,7 @@ import { MapPin, Clock, Users, Plane, Baby, Luggage, PawPrint } from 'lucide-rea
 import { useToast } from '@/components/ui/use-toast';
 import TripModal from '@/components/TripModal';
 import { supabase } from '@/lib/customSupabaseClient';
+import { Button } from '@/components/ui/button';
 
 const NextTrips = ({ trips, user, refreshTrips }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -169,8 +170,19 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
                   <PawPrint className="w-4 h-4 text-pink-400" />
                 )}
               </div>
-              
               <p className="text-green-400 font-medium text-lg">${trip.total_price}</p>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startTrip(trip.id);
+                }}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                Start Trip
+              </Button>
             </div>
           </motion.div>
         ))}
