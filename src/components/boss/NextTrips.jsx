@@ -60,11 +60,10 @@ const NextTrips = ({ trips = [], users = [], drivers = [], refreshData }) => {
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
-    // Add 4 hours to compensate for timezone offset
-    const adjustedDate = new Date(date.getTime() + (4 * 60 * 60 * 1000));
-    return adjustedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    // Display time in NY timezone
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
   };
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 
   if (confirmedTrips.length === 0) {
     return (

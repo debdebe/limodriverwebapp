@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Clock, Users, Plane, Baby, Luggage, Heart } from 'lucide-react';
+import { MapPin, Clock, Users, Plane, Baby, Luggage, PawPrint } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TripModal from '@/components/TripModal';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -43,9 +43,8 @@ const CurrentTrips = ({ trips, user, refreshTrips, tripEvents }) => {
   }, [trips, user.id]);
 
   const getAdjustedTimestamp = () => {
-    const now = new Date();
-    now.setHours(now.getHours() - 4);
-    return now.toISOString();
+    // Return current timestamp without any adjustments
+    return new Date().toISOString();
   };
 
   const updateTripStatus = async (tripId, newStatus, eventType) => {
@@ -105,7 +104,8 @@ const CurrentTrips = ({ trips, user, refreshTrips, tripEvents }) => {
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/New_York'
     });
   };
 
@@ -123,7 +123,8 @@ const CurrentTrips = ({ trips, user, refreshTrips, tripEvents }) => {
     }
     return date.toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'America/New_York'
     });
   };
 
@@ -229,7 +230,7 @@ const CurrentTrips = ({ trips, user, refreshTrips, tripEvents }) => {
                   </div>
                 )}
                 {trip.has_pets && (
-                  <Heart className="w-4 h-4 text-pink-400" />
+                  <PawPrint className="w-4 h-4 text-pink-400" />
                 )}
               </div>
               

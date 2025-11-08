@@ -138,7 +138,7 @@ const RiderHistoryModal = ({ trips, onClose, driverMap }) => (
     </Dialog>
 );
 
-const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allTrips = [] }) => {
+const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allTrips = [], editingTrip, onResetCreate }) => {
   const initialState = {
     customer_phone: '',
     customer_name: '',
@@ -178,6 +178,68 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
     if (!users || !Array.isArray(users)) return {};
     return users.reduce((acc, user) => ({ ...acc, [user.id]: user }), {});
   }, [users]);
+
+  // Fill form when editing trip
+  useEffect(() => {
+    if (editingTrip) {
+      const rider = users.find(user => user.id === editingTrip.rider_id);
+      
+      // Format pickup date and time (NY timezone)
+      const pickupDate = new Date(editingTrip.pickup_time);
+      const pickupTime = pickupDate.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'America/New_York'
+      });
+      
+      // Format arrival date and time if exists (NY timezone)
+      let arrivalDate = null;
+      let arrivalTime = '12:00';
+      if (editingTrip.arrival_time) {
+        arrivalDate = new Date(editingTrip.arrival_time);
+        arrivalTime = arrivalDate.toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'America/New_York'
+        });
+      }
+
+      setFormState({
+        customer_phone: rider?.phone || '',
+        customer_name: rider?.name || '',
+        customer_email: rider?.email || '',
+        pickup_address: editingTrip.pickup_address || '',
+        pickup_latitude: editingTrip.pickup_latitude || null,
+        pickup_longitude: editingTrip.pickup_longitude || null,
+        dropoff_address: editingTrip.dropoff_address || '',
+        dropoff_latitude: editingTrip.dropoff_latitude || null,
+        dropoff_longitude: editingTrip.dropoff_longitude || null,
+        pickup_date: pickupDate,
+        pickup_time: pickupTime,
+        passenger_count: editingTrip.passenger_count || 1,
+        child_seats: editingTrip.child_seats || 0,
+        has_pets: editingTrip.has_pets || false,
+        selected_vehicle_id: editingTrip.selected_vehicle_id || '',
+        total_price: editingTrip.total_price?.toString() || '',
+        airline: editingTrip.airline || '',
+        flight_number: editingTrip.flight_number || '',
+        arrival_date: arrivalDate,
+        arrival_time: arrivalTime,
+        driver_id: editingTrip.driver_id || '',
+        driver_notes: editingTrip.driver_notes || '',
+      });
+
+      setRider(rider);
+      setShowChildSeatInput((editingTrip.child_seats || 0) > 0);
+    } else {
+      // Reset form when not editing
+      setFormState(initialState);
+      setRider(null);
+      setShowChildSeatInput(false);
+    }
+  }, [editingTrip, users]);
 
   const handlePhoneSearch = useCallback(async () => {
     if (formState.customer_phone.length < 10) return;
@@ -232,7 +294,8 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
 
     let riderId = rider?.id;
 
-    if (!riderId) {
+    // Only create new rider if not editing
+    if (!riderId && !editingTrip) {
         const { data: newRider, error: riderError } = await supabase
             .from('users')
             .insert({
@@ -254,20 +317,25 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
         riderId = newRider.id;
     }
 
-    // Combine date and time for pickup - adjust for timezone
+    // Use existing rider ID if editing
+    if (editingTrip) {
+        riderId = editingTrip.rider_id;
+    }
+
+    // Combine date and time for pickup - use local time as-is
     const [hours, minutes] = formState.pickup_time.split(':');
     const pickupDateTime = new Date(formState.pickup_date);
-    pickupDateTime.setHours(parseInt(hours) - 4, parseInt(minutes), 0, 0); // -4 hours to compensate for timezone
+    pickupDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
     
-    // Combine date and time for arrival (if provided) - adjust for timezone
+    // Combine date and time for arrival (if provided) - use local time as-is
     let arrivalDateTime = null;
     if (formState.arrival_date) {
       const [arrHours, arrMinutes] = formState.arrival_time.split(':');
       arrivalDateTime = new Date(formState.arrival_date);
-      arrivalDateTime.setHours(parseInt(arrHours) - 4, parseInt(arrMinutes), 0, 0); // -4 hours to compensate for timezone
+      arrivalDateTime.setHours(parseInt(arrHours), parseInt(arrMinutes), 0, 0);
     }
 
-    const { error: tripError } = await supabase.from('trips').insert({
+    const tripData = {
         rider_id: riderId,
         driver_id: formState.driver_id || null,
         pickup_address: formState.pickup_address,
@@ -277,7 +345,6 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
         child_seats: showChildSeatInput ? formState.child_seats : 0,
         has_pets: formState.has_pets,
         selected_vehicle_id: formState.selected_vehicle_id || null,
-        status: 'Pending',
         total_price: parseFloat(formState.total_price),
         airline: formState.airline || null,
         flight_number: formState.flight_number || null,
@@ -288,16 +355,45 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
         pickup_longitude: formState.pickup_longitude,
         dropoff_latitude: formState.dropoff_latitude,
         dropoff_longitude: formState.dropoff_longitude,
-        system_date: new Date().toISOString()
-    });
+    };
+
+    let tripError;
+
+    if (editingTrip) {
+        // Update existing trip
+        const { error } = await supabase
+            .from('trips')
+            .update(tripData)
+            .eq('id', editingTrip.id);
+        tripError = error;
+    } else {
+        // Create new trip
+        tripData.status = 'Pending';
+        tripData.system_date = new Date().toISOString();
+        
+        const { error } = await supabase
+            .from('trips')
+            .insert(tripData);
+        tripError = error;
+    }
     
     if (tripError) {
-        toast({ variant: "destructive", title: "Error creating trip", description: tripError.message });
+        toast({ 
+            variant: "destructive", 
+            title: "Error", 
+            description: editingTrip ? "Failed to update trip" : "Failed to create trip" 
+        });
     } else {
-        toast({ title: "Success!", description: "New trip has been created." });
+        toast({ 
+            title: "Success!", 
+            description: editingTrip ? "Trip has been updated." : "New trip has been created." 
+        });
+        
+        // Reset form and navigation
         setFormState(initialState);
         setRider(null);
         setRiderHistory([]);
+        if (onResetCreate) onResetCreate(); // Reset edit mode
         refreshData();
     }
   };
@@ -305,7 +401,20 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-        <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-white">
+            {editingTrip ? 'Edit Trip' : 'Create New Trip'}
+          </h2>
+          {editingTrip && (
+            <Button 
+              onClick={onResetCreate}
+              variant="outline"
+              className="text-white border-white/20 hover:bg-white/10"
+            >
+              Cancel Edit
+            </Button>
+          )}
+        </div>
 
         {isHistoryModalOpen && (
             <RiderHistoryModal trips={riderHistory} onClose={() => setIsHistoryModalOpen(false)} driverMap={driverMap} />
@@ -502,7 +611,9 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
             </div>
 
             <div className="flex justify-end pt-4">
-                <Button type="submit" className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg">Create Trip</Button>
+                <Button type="submit" className="bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg">
+                  {editingTrip ? 'Update Trip' : 'Create Trip'}
+                </Button>
             </div>
         </form>
     </motion.div>

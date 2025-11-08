@@ -229,7 +229,7 @@ const EarningsDashboard = ({ trips, tripEvents, users }) => {
                 <div key={trip.id} className="grid grid-cols-5 gap-4 p-4 border-b border-white/10 items-center hover:bg-white/5 cursor-pointer transition-colors" onClick={() => setSelectedTrip(trip)}>
                   <div>
                     <p className="text-white font-medium">{usersMap[trip.rider_id]?.name || 'N/A'}</p>
-                    <p className="text-gray-400 text-xs">{new Date(trip.pickup_time).toLocaleDateString()}</p>
+                    <p className="text-gray-400 text-xs">{new Date(trip.pickup_time).toLocaleDateString('en-US', { timeZone: 'America/New_York' })}</p>
                   </div>
                   <div>
                     <p className="text-white font-medium">{driversMap[trip.driver_id]?.name || 'N/A'}</p>

@@ -33,6 +33,7 @@ const BossApp = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('pending');
   const [initialLoading, setInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [editingTrip, setEditingTrip] = useState(null);
   const { toast } = useToast();
 
   const [data, setData] = useState({
@@ -109,10 +110,19 @@ const BossApp = ({ user, onLogout }) => {
     };
   }, [fetchData]);
 
+  const handleEditTrip = (trip) => {
+    setEditingTrip(trip);
+    setActiveTab('create');
+  };
+
+  const handleResetCreate = () => {
+    setEditingTrip(null);
+  };
+
   const tabs = [
     { id: 'pending', label: 'Pending', icon: Briefcase, color: 'text-orange-400' },
     { id: 'next', label: 'Next', icon: Calendar, color: 'text-blue-400' },
-    { id: 'create', label: 'Create', icon: PlusCircle, color: 'text-green-400' },
+    { id: 'create', label: editingTrip ? 'Edit Trip' : 'Create', icon: PlusCircle, color: 'text-green-400' },
     { id: 'locations', label: 'Locations', icon: Map, color: 'text-cyan-400' },
     { id: 'drivers', label: 'Drivers', icon: Users, color: 'text-purple-400' },
     { id: 'earnings', label: 'Earnings', icon: BarChart2, color: 'text-yellow-400' },
@@ -122,11 +132,25 @@ const BossApp = ({ user, onLogout }) => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'pending':
-        return <PendingTrips trips={data.trips || []} users={data.users || []} drivers={data.drivers || []} refreshData={fetchData} />;
+        return <PendingTrips 
+          trips={data.trips || []} 
+          users={data.users || []} 
+          drivers={data.drivers || []} 
+          refreshData={fetchData}
+          onEditTrip={handleEditTrip}
+        />;
       case 'next':
         return <NextTrips trips={data.trips || []} users={data.users || []} drivers={data.drivers || []} refreshData={fetchData} />;
       case 'create':
-        return <CreateTrip vehicles={data.vehicles || []} drivers={data.drivers || []} users={data.users || []} refreshData={fetchData} allTrips={data.trips || []}/>;
+        return <CreateTrip 
+          vehicles={data.vehicles || []} 
+          drivers={data.drivers || []} 
+          users={data.users || []} 
+          refreshData={fetchData} 
+          allTrips={data.trips || []}
+          editingTrip={editingTrip}
+          onResetCreate={handleResetCreate}
+        />;
       case 'locations':
         return <Locations locations={data.locations || []} refreshData={fetchData} />;
       case 'drivers':
@@ -183,7 +207,7 @@ const BossApp = ({ user, onLogout }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-2"
+        className="fixed bottom-0 left-0 right-0 bg-black border-t border-white/10 p-2 backdrop-blur-md"
       >
         <div className="flex justify-around">
           {tabs.map((tab) => {
@@ -194,7 +218,13 @@ const BossApp = ({ user, onLogout }) => {
               <motion.button
                 key={tab.id}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  // Reset edit mode when switching tabs (except when going to create for editing)
+                  if (tab.id !== 'create') {
+                    setEditingTrip(null);
+                  }
+                }}
                 className={`flex flex-col items-center p-1 rounded-lg transition-all duration-200 flex-1 ${
                   isActive 
                     ? 'bg-white/20 text-white' 

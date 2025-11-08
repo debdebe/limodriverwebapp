@@ -179,7 +179,12 @@ const MyAccount = ({ user, onLogout }) => {
         transition={{ delay: 0.3 }}
       >
         <Button
-          onClick={onLogout}
+          onClick={() => {
+            localStorage.removeItem('rememberMe');
+            localStorage.removeItem('savedEmail');
+            localStorage.removeItem('savedPassword');
+            onLogout();
+          }}
           variant="destructive"
           className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-lg"
         >

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Clock, Users, Plane, Baby, Luggage, Heart } from 'lucide-react';
+import { MapPin, Clock, Users, Plane, Baby, Luggage, PawPrint } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TripModal from '@/components/TripModal';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -29,7 +29,7 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
 
     const { error: eventError } = await supabase
       .from('trip_events')
-      .insert({ trip_id: tripId, event_type: 'en_route', driver_id: user.id });
+      .insert({ trip_id: tripId, event_type: 'en_route', driver_id: user.id, timestamp: new Date().toISOString() });
 
     if (eventError) {
       toast({ variant: "destructive", title: "Error recording event", description: eventError.message });
@@ -48,7 +48,8 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/New_York'
     });
   };
 
@@ -66,7 +67,8 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
     }
     return date.toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'America/New_York'
     });
   };
 
@@ -164,7 +166,7 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
                   </div>
                 )}
                 {trip.has_pets && (
-                  <Heart className="w-4 h-4 text-pink-400" />
+                  <PawPrint className="w-4 h-4 text-pink-400" />
                 )}
               </div>
               

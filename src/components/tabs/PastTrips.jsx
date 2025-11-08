@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Clock, Users, Plane, Baby, Luggage, Heart } from 'lucide-react';
+import { MapPin, Clock, Users, Plane, Baby, Luggage, PawPrint } from 'lucide-react';
 import TripModal from '@/components/TripModal';
 
 const PastTrips = ({ trips, tripEvents, user }) => {
@@ -37,7 +37,8 @@ const PastTrips = ({ trips, tripEvents, user }) => {
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/New_York'
     });
   };
 
@@ -45,7 +46,8 @@ const PastTrips = ({ trips, tripEvents, user }) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'America/New_York'
     });
   };
 
@@ -161,7 +163,7 @@ const PastTrips = ({ trips, tripEvents, user }) => {
                     </div>
                   )}
                   {trip.has_pets && (
-                    <Heart className="w-4 h-4 text-pink-400" />
+                    <PawPrint className="w-4 h-4 text-pink-400" />
                   )}
                 </div>
                 

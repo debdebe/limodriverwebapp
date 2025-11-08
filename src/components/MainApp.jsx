@@ -258,14 +258,16 @@ const MainApp = ({ user, onLogout }) => {
               {new Date().toLocaleDateString('en-US', { 
                 weekday: 'short', 
                 month: 'short', 
-                day: 'numeric' 
+                day: 'numeric',
+                timeZone: 'America/New_York'
               })}
             </p>
             <p className="text-gray-300 text-xs">
               {new Date().toLocaleTimeString('en-US', { 
                 hour: '2-digit', 
-                minute: '2-digit' 
-              })}
+                minute: '2-digit',
+                timeZone: 'America/New_York'
+              })} NY Time
             </p>
           </div>
         </div>
@@ -278,7 +280,7 @@ const MainApp = ({ user, onLogout }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-2"
+        className="fixed bottom-0 left-0 right-0 bg-black/55 border-t border-white/10 p-2 backdrop-blur-md"
       >
         <div className="flex justify-around">
           {tabs.map((tab) => {

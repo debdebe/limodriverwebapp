@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import TripModal from '@/components/TripModal';
 
-const PendingTrips = ({ trips, users, drivers, refreshData }) => {
+const PendingTrips = ({ trips, users, drivers, refreshData, onEditTrip }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [assignDriverTrip, setAssignDriverTrip] = useState(null);
   const [selectedDriverId, setSelectedDriverId] = useState('');
@@ -29,10 +29,11 @@ const PendingTrips = ({ trips, users, drivers, refreshData }) => {
 
   const pendingTrips = useMemo(() => {
     const now = new Date();
+    
     return trips
       .filter(trip => {
         const pickupTime = new Date(trip.pickup_time);
-        const isFuture = pickupTime >= now;
+        const isFuture = pickupTime.getTime() > now.getTime();
         const isPending = trip.status === 'Pending';
         const isConfirmedWithoutDriver = trip.status === 'Confirmed' && !trip.driver_id;
         return isFuture && (isPending || isConfirmedWithoutDriver);
@@ -91,11 +92,10 @@ const PendingTrips = ({ trips, users, drivers, refreshData }) => {
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
-    // Add 4 hours to compensate for timezone offset
-    const adjustedDate = new Date(date.getTime() + (4 * 60 * 60 * 1000));
-    return adjustedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    // Display time in NY timezone
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
   };
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 
   if (pendingTrips.length === 0) {
     return (
@@ -183,16 +183,17 @@ const PendingTrips = ({ trips, users, drivers, refreshData }) => {
         ))}
       </div>
 
-      <AnimatePresence>
-        {selectedTrip && (
-          <TripModal
-            trip={selectedTrip}
-            rider={usersMap[selectedTrip.rider_id]}
-            onClose={() => setSelectedTrip(null)}
-            type="boss_view"
-          />
-        )}
-      </AnimatePresence>
+              <AnimatePresence>
+                {selectedTrip && (
+                  <TripModal
+                    trip={selectedTrip}
+                    rider={usersMap[selectedTrip.rider_id]}
+                    onClose={() => setSelectedTrip(null)}
+                    onEditTrip={onEditTrip}
+                    type="boss_view"
+                  />
+                )}
+              </AnimatePresence>
 
       <Dialog open={!!assignDriverTrip} onOpenChange={() => setAssignDriverTrip(null)}>
         <DialogContent className="glass text-white">
