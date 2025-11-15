@@ -121,10 +121,10 @@ window.fetch = function(...args) {
 
 			if (!response.ok && !isDocumentResponse) {
 					// Don't log errors for external APIs like Nominatim or other geocoding services
-					if (!requestUrl.includes('nominatim.openstreetmap.org') && !requestUrl.includes('geocoding')) {
+					if (!url.includes('nominatim.openstreetmap.org') && !url.includes('geocoding')) {
 						const responseClone = response.clone();
 						const errorFromRes = await responseClone.text();
-						console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
+						console.error(\`Fetch error from \${url}: \${errorFromRes}\`);
 					}
 			}
 

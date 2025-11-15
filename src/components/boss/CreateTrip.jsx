@@ -15,6 +15,11 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import _ from 'lodash';
 
+const toNumberOrDefault = (value, fallback = 0) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 const AddressInput = ({ label, value, onChange, onSelect }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -144,6 +149,7 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
     customer_name: '',
     customer_email: '',
     pickup_address: '',
+    stop_address: '',
     pickup_latitude: null,
     pickup_longitude: null,
     dropoff_address: '',
@@ -153,6 +159,7 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
     pickup_time: '12:00',
     passenger_count: 1,
     child_seats: 0,
+    luggage_count: 0,
     has_pets: false,
     selected_vehicle_id: '',
     total_price: '',
@@ -211,6 +218,7 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
         customer_name: rider?.name || '',
         customer_email: rider?.email || '',
         pickup_address: editingTrip.pickup_address || '',
+        stop_address: editingTrip.stop_address || '',
         pickup_latitude: editingTrip.pickup_latitude || null,
         pickup_longitude: editingTrip.pickup_longitude || null,
         dropoff_address: editingTrip.dropoff_address || '',
@@ -220,6 +228,7 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
         pickup_time: pickupTime,
         passenger_count: editingTrip.passenger_count || 1,
         child_seats: editingTrip.child_seats || 0,
+        luggage_count: editingTrip.luggage_count || 0,
         has_pets: editingTrip.has_pets || false,
         selected_vehicle_id: editingTrip.selected_vehicle_id || '',
         total_price: editingTrip.total_price?.toString() || '',
@@ -292,10 +301,43 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const pickupAddress = (formState.pickup_address || '').trim();
+    const dropoffAddress = (formState.dropoff_address || '').trim();
+    const stopAddress = (formState.stop_address || '').trim();
+    const totalPrice = Number(formState.total_price);
+
+    if (!pickupAddress || !dropoffAddress) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing address',
+        description: 'Pickup and dropoff addresses are required.',
+      });
+      return;
+    }
+
+    if (!formState.pickup_date || !formState.pickup_time) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing pickup date/time',
+        description: 'Please select a pickup date and time.',
+      });
+      return;
+    }
+
+    if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid total price',
+        description: 'Enter a valid trip price greater than 0.',
+      });
+      return;
+    }
+
     let riderId = rider?.id;
 
     // Only create new rider if not editing
     if (!riderId && !editingTrip) {
+        console.log('[CreateTrip] Creating new rider with phone:', formState.customer_phone);
         const { data: newRider, error: riderError } = await supabase
             .from('users')
             .insert({
@@ -311,9 +353,11 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
             .single();
 
         if (riderError) {
+            console.error('[CreateTrip] Rider creation failed:', riderError);
             toast({ variant: "destructive", title: "Error creating rider", description: riderError.message });
             return;
         }
+        console.log('[CreateTrip] Rider created with id:', newRider.id);
         riderId = newRider.id;
     }
 
@@ -323,44 +367,66 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
     }
 
     // Combine date and time for pickup - use local time as-is
+    const pickupDate = new Date(formState.pickup_date);
+    if (Number.isNaN(pickupDate.getTime())) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid pickup date',
+        description: 'Please choose a valid pickup date.',
+      });
+      return;
+    }
+
     const [hours, minutes] = formState.pickup_time.split(':');
-    const pickupDateTime = new Date(formState.pickup_date);
-    pickupDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    const pickupDateTime = new Date(pickupDate);
+    pickupDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
     
     // Combine date and time for arrival (if provided) - use local time as-is
     let arrivalDateTime = null;
     if (formState.arrival_date) {
       const [arrHours, arrMinutes] = formState.arrival_time.split(':');
       arrivalDateTime = new Date(formState.arrival_date);
-      arrivalDateTime.setHours(parseInt(arrHours), parseInt(arrMinutes), 0, 0);
+      arrivalDateTime.setHours(parseInt(arrHours, 10), parseInt(arrMinutes, 10), 0, 0);
     }
+
+    const passengerCount = Math.max(1, parseInt(formState.passenger_count, 10) || 1);
+    const childSeatCount = showChildSeatInput ? Math.max(0, parseInt(formState.child_seats, 10) || 0) : 0;
+    const luggageCount = Math.max(0, parseInt(formState.luggage_count, 10) || 0);
+
+    const pickupLatitude = toNumberOrDefault(formState.pickup_latitude);
+    const pickupLongitude = toNumberOrDefault(formState.pickup_longitude);
+    const dropoffLatitude = toNumberOrDefault(formState.dropoff_latitude);
+    const dropoffLongitude = toNumberOrDefault(formState.dropoff_longitude);
 
     const tripData = {
         rider_id: riderId,
         driver_id: formState.driver_id || null,
-        pickup_address: formState.pickup_address,
-        dropoff_address: formState.dropoff_address,
+        pickup_address: pickupAddress,
+        stop_address: stopAddress || null,
+        dropoff_address: dropoffAddress,
         pickup_time: pickupDateTime.toISOString(),
-        passenger_count: formState.passenger_count,
-        child_seats: showChildSeatInput ? formState.child_seats : 0,
+        passenger_count: passengerCount,
+        child_seats: childSeatCount,
+        luggage_count: luggageCount,
         has_pets: formState.has_pets,
         selected_vehicle_id: formState.selected_vehicle_id || null,
-        total_price: parseFloat(formState.total_price),
+        total_price: totalPrice,
         airline: formState.airline || null,
         flight_number: formState.flight_number || null,
         arrival_time: arrivalDateTime ? arrivalDateTime.toISOString() : null,
         driver_notes: formState.driver_notes || null,
         is_round_trip: false,
-        pickup_latitude: formState.pickup_latitude,
-        pickup_longitude: formState.pickup_longitude,
-        dropoff_latitude: formState.dropoff_latitude,
-        dropoff_longitude: formState.dropoff_longitude,
+        pickup_latitude: pickupLatitude,
+        pickup_longitude: pickupLongitude,
+        dropoff_latitude: dropoffLatitude,
+        dropoff_longitude: dropoffLongitude,
     };
 
     let tripError;
 
     if (editingTrip) {
         // Update existing trip
+        console.log('[CreateTrip] Updating existing trip', editingTrip.id, tripData);
         const { error } = await supabase
             .from('trips')
             .update(tripData)
@@ -371,6 +437,7 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
         tripData.status = 'Pending';
         tripData.system_date = new Date().toISOString();
         
+        console.log('[CreateTrip] Inserting new trip payload:', tripData);
         const { error } = await supabase
             .from('trips')
             .insert(tripData);
@@ -378,12 +445,14 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
     }
     
     if (tripError) {
+        console.error('[CreateTrip] Trip save failed:', tripError);
         toast({ 
             variant: "destructive", 
             title: "Error", 
             description: editingTrip ? "Failed to update trip" : "Failed to create trip" 
         });
     } else {
+        console.log('[CreateTrip] Trip save succeeded');
         toast({ 
             title: "Success!", 
             description: editingTrip ? "Trip has been updated." : "New trip has been created." 
@@ -457,6 +526,12 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
                         onChange={(v) => setFormState(p => ({ ...p, dropoff_address: v }))}
                         onSelect={(s) => setFormState(p => ({ ...p, dropoff_address: s.display_name.replace("Amerika Birleşik Devletleri", "USA"), dropoff_latitude: parseFloat(s.lat), dropoff_longitude: parseFloat(s.lon) }))}
                     />
+                    <AddressInput
+                        label="Stop Address (optional)"
+                        value={formState.stop_address}
+                        onChange={(v) => setFormState(p => ({ ...p, stop_address: v }))}
+                        onSelect={(s) => setFormState(p => ({ ...p, stop_address: s.display_name.replace("Amerika Birleşik Devletleri", "USA") }))}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label className="text-gray-300">Pickup Date</Label>
@@ -497,7 +572,7 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
                 </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                 <div>
                     <Label className="text-gray-300">Passengers</Label>
                     <div className="flex items-center gap-2 mt-1">
@@ -522,6 +597,14 @@ const CreateTrip = ({ vehicles = [], drivers = [], users = [], refreshData, allT
                     </motion.div>
                 }
                 </AnimatePresence>
+                <div>
+                    <Label className="text-gray-300">Luggage</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Button type="button" size="icon" variant="outline" onClick={() => handleNumericChange('luggage_count', -1)} className="w-8 h-8"><Minus className="w-4 h-4"/></Button>
+                        <Input type="number" value={formState.luggage_count} readOnly className="w-12 text-center bg-transparent border-0 text-white font-medium"/>
+                        <Button type="button" size="icon" variant="outline" onClick={() => handleNumericChange('luggage_count', 1)} className="w-8 h-8"><Plus className="w-4 h-4"/></Button>
+                    </div>
+                </div>
                 <div className="flex items-center space-x-2">
                     <Checkbox id="has_pets" name="has_pets" checked={formState.has_pets} onCheckedChange={(c) => setFormState(p => ({...p, has_pets: c}))} />
                     <Label htmlFor="has_pets" className="text-gray-300">Has Pets</Label>

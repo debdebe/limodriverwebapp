@@ -31,6 +31,7 @@ const MainApp = ({ user, onLogout }) => {
   const [tripEvents, setTripEvents] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
   const { toast } = useToast();
   const locationIntervalRef = useRef(null);
 
@@ -49,15 +50,20 @@ const MainApp = ({ user, onLogout }) => {
       .from('trip_events')
       .select('*');
 
-    if (tripsError || eventsError) {
+    const { data: vehiclesData, error: vehiclesError } = await supabase
+      .from('vehicles')
+      .select('*');
+
+    if (tripsError || eventsError || vehiclesError) {
       toast({
         variant: "destructive",
         title: "Failed to load data",
-        description: tripsError?.message || eventsError?.message,
+        description: tripsError?.message || eventsError?.message || vehiclesError?.message,
       });
     } else {
       setTrips(tripsData);
       setTripEvents(eventsData);
+      setVehicles(vehiclesData);
     }
     
     if (isInitial) {
@@ -208,7 +214,7 @@ const MainApp = ({ user, onLogout }) => {
       case 'current':
         return <CurrentTrips trips={trips} tripEvents={tripEvents} user={user} refreshTrips={fetchTripsAndEvents} />;
       case 'next':
-        return <NextTrips trips={trips} user={user} refreshTrips={fetchTripsAndEvents} />;
+        return <NextTrips trips={trips} user={user} vehicles={vehicles} refreshTrips={fetchTripsAndEvents} />;
       case 'past':
         return <PastTrips trips={trips} tripEvents={tripEvents} user={user} />;
       case 'wallet':

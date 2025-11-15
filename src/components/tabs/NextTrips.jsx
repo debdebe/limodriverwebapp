@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Clock, Users, Plane, Baby, Luggage, PawPrint } from 'lucide-react';
+import { MapPin, Clock, Users, Plane, Baby, Luggage, PawPrint, Car } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TripModal from '@/components/TripModal';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Button } from '@/components/ui/button';
 
-const NextTrips = ({ trips, user, refreshTrips }) => {
+const NextTrips = ({ trips, user, vehicles = [], refreshTrips }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const { toast } = useToast();
 
@@ -43,7 +43,7 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
     });
 
     setSelectedTrip(null);
-    refreshTrips();
+      refreshTrips && refreshTrips();
   };
 
   const formatTime = (dateString) => {
@@ -72,6 +72,13 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
       timeZone: 'America/New_York'
     });
   };
+
+  const vehicleMap = useMemo(() => {
+    return vehicles.reduce((acc, vehicle) => {
+      acc[vehicle.id] = vehicle;
+      return acc;
+    }, {});
+  }, [vehicles]);
 
   if (nextTrips.length === 0) {
     return (
@@ -139,6 +146,15 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
                       <p className="text-gray-300 text-xs">{trip.dropoff_address}</p>
                     </div>
                   </div>
+
+                  {trip.selected_vehicle_id && vehicleMap[trip.selected_vehicle_id] && (
+                    <div className="flex items-center space-x-2 text-xs text-blue-200 bg-blue-600/15 border border-blue-500/30 rounded-md px-3 py-2">
+                      <Car className="w-3 h-3" />
+                      <span className="font-medium">
+                        Vehicle: {vehicleMap[trip.selected_vehicle_id]?.name} — {vehicleMap[trip.selected_vehicle_id]?.license_plate}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -173,7 +189,22 @@ const NextTrips = ({ trips, user, refreshTrips }) => {
               <p className="text-green-400 font-medium text-lg">${trip.total_price}</p>
             </div>
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex items-center justify-between bg-blue-500/20 border border-blue-500/30 rounded-lg px-4 py-3">
+              {trip.selected_vehicle_id && vehicleMap[trip.selected_vehicle_id] ? (
+                <div className="flex items-center space-x-3">
+                  <Car className="w-4 h-4 text-blue-200" />
+                  <div className="text-sm text-white">
+                    <p className="font-semibold">
+                      {vehicleMap[trip.selected_vehicle_id]?.name}
+                    </p>
+                    <p className="text-xs text-blue-100">
+                      {vehicleMap[trip.selected_vehicle_id]?.license_plate}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-blue-100">No vehicle assigned yet.</p>
+              )}
               <Button
                 onClick={(e) => {
                   e.stopPropagation();

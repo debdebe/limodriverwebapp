@@ -140,7 +140,13 @@ const BossApp = ({ user, onLogout }) => {
           onEditTrip={handleEditTrip}
         />;
       case 'next':
-        return <NextTrips trips={data.trips || []} users={data.users || []} drivers={data.drivers || []} refreshData={fetchData} />;
+        return <NextTrips 
+          trips={data.trips || []} 
+          users={data.users || []} 
+          drivers={data.drivers || []} 
+          vehicles={data.vehicles || []}
+          refreshTrips={fetchData}
+        />;
       case 'create':
         return <CreateTrip 
           vehicles={data.vehicles || []} 
@@ -152,7 +158,15 @@ const BossApp = ({ user, onLogout }) => {
           onResetCreate={handleResetCreate}
         />;
       case 'locations':
-        return <Locations locations={data.locations || []} refreshData={fetchData} />;
+        return <Locations 
+          locations={data.locations || []} 
+          drivers={data.drivers || []}
+          trips={data.trips || []}
+          tripEvents={data.tripEvents || []}
+          users={data.users || []}
+          vehicles={data.vehicles || []}
+          refreshData={fetchData} 
+        />;
       case 'drivers':
         return <ManageDrivers drivers={data.drivers || []} bossId={user.id} refreshData={fetchData} allTrips={data.trips || []} />;
       case 'earnings':
