@@ -8,8 +8,16 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function App() {
   const { session, profile, loading, signOut } = useAuth();
+  const isPasswordRecoveryFlow =
+    typeof window !== 'undefined' &&
+    (window.location.hash.includes('type=recovery') ||
+      new URLSearchParams(window.location.search).get('type') === 'recovery');
 
   const renderAppForRole = () => {
+    if (isPasswordRecoveryFlow) {
+      return <LoginScreen forcedMode="reset" />;
+    }
+
     if (!session || !profile) {
       return (
         <motion.div
@@ -64,7 +72,7 @@ function App() {
     );
   };
 
-  if (loading) {
+  if (loading && !isPasswordRecoveryFlow) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <motion.div
