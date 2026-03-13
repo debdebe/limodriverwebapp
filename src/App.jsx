@@ -79,7 +79,7 @@ function App() {
   return (
     <>
       <Helmet>
-        <title>Limo - Professional Limo Service Management</title>
+        <title>Blairstown Limousine</title>
         <meta name="description" content="Professional limousine service management application for trip tracking, earnings, and customer service." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta name="theme-color" content="#0f172a" />
